@@ -166,8 +166,10 @@ join_set_channelmodes(CHANNEL *chan, CLIENT *target, const char *flags)
 	/* If the channel is persistent (+P) and client is an IRC op:
 	 * make client chanop, if not disabled in configuration. */
 	if (Channel_HasMode(chan, 'P') && Conf_OperChanPAutoOp
-	    && Client_HasMode(target, 'o'))
-		Channel_UserModeAdd(chan, target, 'o');
+	    && Client_HasMode(target, 'o')) {
+		Channel_UserModeAdd(chan, target, 'a');
+	}
+
 } /* join_set_channelmodes */
 
 /**
@@ -377,7 +379,7 @@ IRC_JOIN( CLIENT *Client, REQUEST *Req )
 				/* New channel: first user will become channel
 				 * operator unless this is a modeless channel */
 				if (*channame != '+')
-					flags = "o";
+					flags = "q";
 			}
 
 			/* Local client: update idle time */

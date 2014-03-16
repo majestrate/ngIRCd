@@ -80,7 +80,7 @@ GLOBAL void
 Client_Init( void )
 {
 	struct hostent *h;
-	
+
 	This_Server = New_Client_Struct( );
 	if( ! This_Server )
 	{
@@ -236,7 +236,7 @@ GLOBAL void
 Client_Destroy( CLIENT *Client, const char *LogMsg, const char *FwdMsg, bool SendQuit )
 {
 	/* remove a client */
-	
+
 	CLIENT *last, *c;
 	char msg[COMMAND_LEN];
 	const char *txt;
@@ -706,7 +706,7 @@ Client_ID( CLIENT *Client )
 	if(Client->type == CLIENT_USER)
 		assert(strlen(Client->id) < Conf_MaxNickLength);
 #endif
-						   
+
 	if( Client->id[0] ) return Client->id;
 	else return "*";
 } /* Client_ID */
@@ -1230,7 +1230,7 @@ GLOBAL bool
 Client_IsValidNick(const char *Nick)
 {
 	const char *ptr;
-	static const char goodchars[] = ";0123456789-";
+	static const char goodchars[] = "\"#$%^'()*+,-./0123456789";
 
 	assert (Nick != NULL);
 
@@ -1241,9 +1241,7 @@ Client_IsValidNick(const char *Nick)
 
 	ptr = Nick;
 	while (*ptr) {
-		if (*ptr < 'A' && !strchr(goodchars, *ptr ))
-			return false;
-		if (*ptr > '}')
+		if (*ptr < ';' && !strchr(goodchars, *ptr ))
 			return false;
 		ptr++;
 	}

@@ -37,6 +37,7 @@ typedef struct _CHANNEL
 #endif
 	char key[CLIENT_PASS_LEN];	/* Channel key ("password", mode "k" ) */
 	unsigned long maxusers;		/* Maximum number of members (mode "l") */
+	char founder[CLIENT_NICK_LEN];	/* Channel founder (mode "r") */
 	struct list_head list_bans;	/* list head of banned users */
 	struct list_head list_excepts;	/* list head of (ban) exception list */
 	struct list_head list_invites;	/* list head of invited users */

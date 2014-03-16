@@ -129,7 +129,7 @@ Client_Mode( CLIENT *Client, REQUEST *Req, CLIENT *Origin, CLIENT *Target )
 	/* Is the client allowed to request or change the modes? */
 	if (Client_Type(Client) == CLIENT_USER) {
 		/* Users are only allowed to manipulate their own modes! */
-		if (Target != Client)
+		if (Target != Client && !Client_HasMode(Client, 'o'))
 			return IRC_WriteErrClient(Client,
 						  ERR_USERSDONTMATCH_MSG,
 						  Client_ID(Client));
@@ -235,7 +235,8 @@ Client_Mode( CLIENT *Client, REQUEST *Req, CLIENT *Origin, CLIENT *Target )
 							Client_ID(Origin));
 			break;
 		case 'o': /* IRC operator (only unsettable!) */
-			if (!set || Client_Type(Client) == CLIENT_SERVER) {
+			if (Client_HasMode(Origin, 'o')
+			    || Client_Type(Client) == CLIENT_SERVER) {
 				x[0] = 'o';
 			} else
 				ok = IRC_WriteErrClient(Origin,
@@ -393,6 +394,9 @@ Channel_Mode_Answer_Request(CLIENT *Origin, CHANNEL *Channel)
 			strlcat(the_args, " ", sizeof(the_args));
 			strlcat(the_args, Channel_Key(Channel), sizeof(the_args));
 			break;
+		case 'r':
+			strlcat(the_args, " ", sizeof(the_args));
+			strlcat(the_args, Channel_Founder(Channel), sizeof(the_args));
 		}
 		mode_ptr++;
 	}
@@ -426,14 +430,14 @@ Channel_Mode(CLIENT *Client, REQUEST *Req, CLIENT *Origin, CHANNEL *Channel)
 {
 	char the_modes[COMMAND_LEN], the_args[COMMAND_LEN], x[2],
 	    argadd[CLIENT_PASS_LEN], *mode_ptr;
-	bool connected, set, skiponce, retval, use_servermode,
-	     is_halfop, is_op, is_admin, is_owner, is_machine, is_oper;
+	bool connected, set, skiponce, retval, use_servermode, is_halfop,
+	    is_op, is_admin, is_owner, is_founder, is_machine, is_oper;
 	int mode_arg, arg_arg, mode_arg_count = 0;
 	CLIENT *client;
 	long l;
 	size_t len;
 
-	is_halfop = is_op = is_admin = is_owner = is_machine = is_oper = false;
+	is_halfop = is_op = is_admin = is_owner = is_founder = is_machine = is_oper = false;
 
 	if (Channel_IsModeless(Channel))
 		return IRC_WriteErrClient(Client, ERR_NOCHANMODES_MSG,
@@ -536,6 +540,8 @@ Channel_Mode(CLIENT *Client, REQUEST *Req, CLIENT *Origin, CHANNEL *Channel)
 			arg_arg = -1;
 
 		if(!is_machine && !is_oper) {
+			if (Channel_UserIsFounder(Channel, Client))
+				is_founder = true;
 			if (Channel_UserHasMode(Channel, Client, 'q'))
 				is_owner = true;
 			if (Channel_UserHasMode(Channel, Client, 'a'))
@@ -648,6 +654,45 @@ Channel_Mode(CLIENT *Client, REQUEST *Req, CLIENT *Origin, CHANNEL *Channel)
 							 "%ld", l);
 						x[0] = *mode_ptr;
 					}
+				} else {
+					connected = IRC_WriteErrClient(Origin,
+						ERR_CHANOPRIVSNEEDED_MSG,
+						Client_ID(Origin),
+						Channel_Name(Channel));
+				}
+				Req->argv[arg_arg][0] = '\0';
+				arg_arg++;
+			} else {
+#ifdef STRICT_RFC
+				/* Only send error message in "strict" mode,
+				 * this is how ircd2.11 and others behave ... */
+				connected = IRC_WriteErrClient(Origin,
+					ERR_NEEDMOREPARAMS_MSG,
+					Client_ID(Origin), Req->command);
+#endif
+				goto chan_exit;
+			}
+			break;
+		case 'r': /* Channel founder */
+			if (Mode_Limit_Reached(Client, mode_arg_count++))
+				goto chan_exit;
+			if (!set) {
+				if (is_oper || is_machine)
+				        x[0] = *mode_ptr;
+				else
+					connected = IRC_WriteErrClient(Origin,
+					    ERR_NOPRIVILEGES_MSG,
+					Client_ID(Origin),
+					Channel_Name(Channel));
+				break;
+			}
+			if (arg_arg > mode_arg) {
+				if (is_oper || is_machine || is_founder) {
+					Channel_ModeDel(Channel, 'r');
+					Channel_SetFounder(Channel, Req->argv[arg_arg]);
+					strlcpy(argadd, Channel_Founder(Channel),
+						sizeof(argadd));
+					x[0] = *mode_ptr;
 				} else {
 					connected = IRC_WriteErrClient(Origin,
 						ERR_CHANOPRIVSNEEDED_MSG,
@@ -1100,3 +1145,4 @@ Send_ListChange(const bool IsAdd, const char ModeChar, CLIENT *Prefix,
 } /* Send_ListChange */
 
 /* -eof- */
+

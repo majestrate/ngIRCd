@@ -361,8 +361,8 @@ Channel_Kick(CLIENT *Peer, CLIENT *Target, CLIENT *Origin, const char *Name,
 		    !Channel_UserHasMode(chan, Target, 'q') &&
 		    !Channel_UserHasMode(chan, Target, 'a'))
 			can_kick = true;
-			
-		/* Half Op can't kick owner | admin | op */ 
+
+		/* Half Op can't kick owner | admin | op */
 		else if (Channel_UserHasMode(chan, Peer, 'h') &&
 		    !Channel_UserHasMode(chan, Target, 'q') &&
 		    !Channel_UserHasMode(chan, Target, 'a') &&
@@ -509,6 +509,11 @@ Channel_MaxUsers( CHANNEL *Chan )
 	return Chan->maxusers;
 } /* Channel_MaxUsers */
 
+Channel_Founder( CHANNEL *Chan )
+{
+	assert( Chan != NULL );
+	return Chan->founder;
+} /* Channel_Founder */
 
 GLOBAL CHANNEL *
 Channel_First( void )
@@ -741,6 +746,13 @@ Channel_UserModes( CHANNEL *Chan, CLIENT *Client )
 
 
 GLOBAL bool
+Channel_UserIsFounder( CHANNEL *Chan, CLIENT *Client )
+{
+	return strcmp(Channel_Founder(Chan), Client) != NULL;
+} /* Channel_UserIsFounder */
+
+
+GLOBAL bool
 Channel_UserHasMode( CHANNEL *Chan, CLIENT *Client, char Mode )
 {
 	return strchr(Channel_UserModes(Chan, Client), Mode) != NULL;
@@ -854,6 +866,13 @@ Channel_SetMaxUsers(CHANNEL *Chan, unsigned long Count)
 	LogDebug("Channel %s: Member limit is now %lu.", Chan->name, Chan->maxusers );
 } /* Channel_SetMaxUsers */
 
+GLOBAL void
+Channel_SetFounder(CHANNEL *Chan, const char *Nick)
+{
+	assert( Chan != NULL );
+
+	strlcpy( Chan->founder, Nick, sizeof( Chan->founder ));
+} /* Channel_SetFounder */
 
 /**
  * Check if a client is allowed to send to a specific channel.

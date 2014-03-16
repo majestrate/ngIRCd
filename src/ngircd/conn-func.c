@@ -146,7 +146,7 @@ GLOBAL CONN_ID
 Conn_First( void )
 {
 	CONN_ID i;
-	
+
 	for( i = 0; i < Pool_Size; i++ )
 	{
 		if( My_Connections[i].sock != NONE ) return i;
@@ -161,7 +161,7 @@ Conn_Next( CONN_ID Idx )
 	CONN_ID i = NONE;
 
 	assert( Idx > NONE );
-	
+
 	for( i = Idx + 1; i < Pool_Size; i++ )
 	{
 		if( My_Connections[i].sock != NONE ) return i;
