@@ -1241,7 +1241,8 @@ Client_IsValidNick(const char *Nick)
 
 	ptr = Nick;
 	while (*ptr) {
-		if (*ptr < ';' && !strchr(goodchars, *ptr ))
+		// holy crap unicode horrors shalth be possible now
+		if (*ptr > 0 && *ptr < ';' && !strchr(goodchars, *ptr ))
 			return false;
 		ptr++;
 	}
